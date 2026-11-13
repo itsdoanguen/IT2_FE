@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Student, Regulation, EvaluationResult, ChatResponse, AcademicEvent } from '../types';
+import { Student, Regulation, DocStep, DocDetail, EvaluationResult, ChatResponse, AcademicEvent } from '../types';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -26,6 +26,13 @@ export const regulationApi = {
   },
   getById: async (id: number): Promise<Regulation> => {
     const res = await api.get(`/regulations/${id}`);
+    return res.data;
+  },
+};
+
+export const docApi = {
+  getById: async (id: number): Promise<DocDetail> => {
+    const res = await api.get(`/docs/${id}`);
     return res.data;
   },
 };

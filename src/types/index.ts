@@ -24,6 +24,21 @@ export interface Regulation {
   contentHtml?: string;
 }
 
+export interface DocStep {
+  order: number;
+  title: string;
+  description: string;
+}
+
+export interface DocDetail {
+  id: number;
+  title: string;
+  summary?: string;
+  steps?: DocStep[];
+  file_url?: string;
+  tags?: string[];
+}
+
 export interface ProcedureCriteria {
   id: number;
   procedureName: string;

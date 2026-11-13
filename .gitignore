@@ -28,3 +28,11 @@ dist-ssr
 .env.production
 .env.local
 .env.*.local
+
+# Vim sessions
+*.vim
+
+# Packages
+*.tar
+*.tar.xz
+*.tar.gz
