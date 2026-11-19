@@ -35,6 +35,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+const PDF_DOCUMENT_OPTIONS = {
+  disableRange: true,
+  disableStream: true,
+};
+
 interface Props {
   regulation: Regulation | null;
   onClose: () => void;
@@ -50,7 +55,8 @@ export const DocumentViewerModal: React.FC<Props> = ({
 }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [viewMode, setViewMode] = useState<'text' | 'pdf'>('text');
+  const [viewMode, setViewMode] = useState<'pdf' | 'text'>('pdf');
+  const [useNativePdfFrame, setUseNativePdfFrame] = useState<boolean>(false);
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(initialPage || 1);
   const [scale, setScale] = useState<number>(1.05);
@@ -78,11 +84,15 @@ export const DocumentViewerModal: React.FC<Props> = ({
   });
 
   useEffect(() => {
+    const hasPdfSource = Boolean(
+      (activeReg?.id && activeReg.id > 0) || activeReg?.pdfUrl,
+    );
     setPageNumber(initialPage && initialPage > 0 ? initialPage : 1);
     setNumPages(0);
     setPdfError(false);
-    setViewMode(initialPage && initialPage > 1 ? 'pdf' : 'text');
-  }, [regulation?.documentNumber, regulation?.id, initialPage]);
+    setUseNativePdfFrame(false);
+    setViewMode(hasPdfSource ? 'pdf' : 'text');
+  }, [regulation?.documentNumber, regulation?.id, activeReg?.id, activeReg?.pdfUrl, initialPage]);
 
   if (!regulation || !activeReg) return null;
 
@@ -163,16 +173,6 @@ export const DocumentViewerModal: React.FC<Props> = ({
             <div className="inline-flex rounded-lg bg-white border border-slate-200 p-0.5 text-xs">
               <button
                 type="button"
-                onClick={() => setViewMode('text')}
-                className={`px-2.5 py-1 rounded-md font-semibold flex items-center gap-1 transition-colors ${
-                  viewMode === 'text' ? 'bg-dut-800 text-white' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                <FileCode2 className="w-3.5 h-3.5" />
-                <span>Văn bản số hóa</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => setViewMode('pdf')}
                 disabled={!pdfStreamUrl}
                 className={`px-2.5 py-1 rounded-md font-semibold flex items-center gap-1 transition-colors disabled:opacity-40 ${
@@ -181,6 +181,16 @@ export const DocumentViewerModal: React.FC<Props> = ({
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>PDF gốc</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('text')}
+                className={`px-2.5 py-1 rounded-md font-semibold flex items-center gap-1 transition-colors ${
+                  viewMode === 'text' ? 'bg-dut-800 text-white' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <FileCode2 className="w-3.5 h-3.5" />
+                <span>Tóm tắt &amp; Số hóa</span>
               </button>
             </div>
 
@@ -314,10 +324,19 @@ export const DocumentViewerModal: React.FC<Props> = ({
                 </button>
               </div>
 
-              {pdfStreamUrl && !pdfError ? (
+              {pdfStreamUrl && useNativePdfFrame ? (
+                <div className="w-full max-w-4xl h-[68vh] bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                  <iframe
+                    src={pdfStreamUrl}
+                    title={`PDF ${activeReg.documentNumber}`}
+                    className="w-full h-full border-0"
+                  />
+                </div>
+              ) : pdfStreamUrl && !pdfError ? (
                 <div className="bg-white p-2 rounded-lg shadow-sm border border-slate-200 overflow-x-auto max-w-full">
                   <Document
                     file={pdfStreamUrl}
+                    options={PDF_DOCUMENT_OPTIONS}
                     onLoadSuccess={({ numPages: total }) => {
                       setNumPages(total);
                       setPdfError(false);
@@ -338,22 +357,31 @@ export const DocumentViewerModal: React.FC<Props> = ({
                 <div className="bg-white border border-amber-200 rounded-lg p-6 text-center max-w-md space-y-3">
                   <AlertTriangle className="w-7 h-7 text-amber-500 mx-auto" />
                   <p className="text-xs text-slate-700 font-medium">
-                    Không thể hiển thị trực tiếp PDF trong trình duyệt (tệp nguồn chưa sẵn sàng hoặc bị chặn CORS).
+                    Không thể hiển thị trực tiếp PDF qua trình đọc nhúng (tệp nguồn chậm hoặc đang đồng bộ).
                   </p>
-                  <div className="flex justify-center gap-2">
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {pdfStreamUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setUseNativePdfFrame(true)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-dut-800 text-white hover:bg-dut-700"
+                      >
+                        Mở trình xem PDF trình duyệt
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setViewMode('text')}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800"
                     >
-                      Xem bản số hóa
+                      Xem bản tóm tắt &amp; số hóa
                     </button>
                     {externalPdfUrl && (
                       <a
                         href={externalPdfUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-dut-800 text-white hover:bg-dut-700"
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50"
                       >
                         Mở link gốc DUT
                       </a>
